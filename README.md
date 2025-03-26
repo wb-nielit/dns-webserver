@@ -95,6 +95,7 @@ This will show if the machine is using DHCP.
     ff02::1 ip6-allnodes
     ff02::2 ip6-allrouters
     ```
+    _⚠️ In my case **Ubuntu** is the Hostname you have to add your own Hostname accordingly._    
     Now restart the systemd-hostnamed to apply the chanegs immediately
     ```bash
     sudo systemctl restart systemd-hostnamed
@@ -181,6 +182,7 @@ sudo ufw allow bind9
    listen-on port 53 { 192.168.116.132; };
    allow-query { any; };
    ```
+   _⚠️ Remember You have to add your own IP here_   
    Save and exit.
 
 4. **Edit `named.conf.local` to define the zone file:**  
