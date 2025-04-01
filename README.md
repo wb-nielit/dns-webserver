@@ -1,6 +1,8 @@
 # **DNS & Web Server Setup on Ubuntu**
+![dns-web](https://github.com/user-attachments/assets/ab1c7d7d-9ac9-4634-9247-89721c9d93ad)
+
 ## **Documented By : [Mr. Rahul](https://github.com/cyb-sehgal) (Cyber Security Trainer)**  
-### **Objective**  
+### **Objective**
 This project focuses on setting up a Domain Name System (DNS) server using BIND9 on an Ubuntu machine. The goal is to configure a static IP, assign a Fully Qualified Domain Name (FQDN), install and configure BIND9, create forward lookup zones, and validate the DNS setup.  
 
 ### **Key Features**  
