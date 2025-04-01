@@ -178,28 +178,30 @@ sudo ufw allow bind9
    ```
    Erase the default content and Add these following lines:  
    ```bash
-    // Define LAN network
-    acl MYLAN {
-        192.168.116.0/24; #this would be your LAN Network
-    };
-    options {
-        // Default directory
-        directory "/var/cache/bind";
-        // Allow queries from localhost and LAN network
-        allow-query {
-            localhost;
-            MYLAN;
-        };
-        // Use Google DNS as a forwarder
-        forwarders{
-            8.8.8.8 ;
-            8.8.4.4 ;
-        };
-        // Allow recursive queries
-        recursion yes;
-    };
+   acl "trusted-clients" {
+      192.168.40.0/24;  // Entire subnet
+   };
+
+   options {
+      directory "/var/cache/bind";
+
+      // Allow queries from the entire 192.168.40.x network
+      allow-query {
+         localhost;
+         trusted-clients;
+      };
+
+      forwarders {
+         8.8.8.8;
+         8.8.4.4;
+      };
+
+      recursion yes;
+   };
+
    ```
-   _⚠️ Remember You have to add your own IP here_   
+   _⚠️ Remember You have to add your own Subnet here!_    
+
    Save and exit.
 
   _💡 To check for sysatax errors in the configuration file use this command_   
@@ -214,26 +216,26 @@ sudo ufw allow bind9
    ```
    Erase the default content and Add these following lines:  
    ```bash
-    // Define the Forward zone
-    // My domain: nielitinfosec.local
-    // Forward file called forward.nielitinfosec.local
-    zone "nielitinfosec.local" IN { 
-        type master;
-        // Path of Forward file
-        file "/etc/bind/nielitinfosec/forward.nielitinfosec.local";
-    };
-
-    // Define the Reverse zone
-    // Reverse file called: reverse.nielitinfosec.local
-    zone "116.168.192.in-addr.arpa" IN {
-            type master;
-            file "/etc/bind/nielitinfosec/reverse.nielitinfosec.local";
-    };
+   // Define the Forward zone
+   // My domain: www.nielitinfosec.local
+   // Forward file called fwd.nielitinfosec.local
+   zone "nielitinfosec.local" IN { 
+      type master;
+      // Path of Forward file
+      file "/etc/bind/nielit/fwd.nielitinfosec.local";
+   };
+   // Define the Reverse zone
+   // Reverse file called: rvs.nielitinfosec.local
+   zone "1.168.192.in-addr.arpa" IN {
+         type master;
+         // Path of Reverse file
+         file "/etc/bind/nielit/rvs.nielitinfosec.local";
+   };
 
    ```
-In my case The directory **_nielitinfosec_** and the configuration file **_forward.nielitinfosec.local_** will be created later! you have to create one accordingly.    
+In my case The directory ```nielit``` and the configuration file ```fwd.nielitinfosec.local``` will be created later! you have to create one accordingly.    
 
-And same for the **_reverse.neilitinfosec.local_** in the directory **_nielitinfosec_**     
+And same for the ```rvs.neilitinfosec.local``` in the directory ```nielit```     
 
 Now save the file and exit.     
 
@@ -244,53 +246,54 @@ sudo named-checkconf named.conf.local
   _⚠️ After execution. if the syntax is correct, the returned result will be wihtout any message!_  
 
 5. **Create the zones directory and zone file:**  
-   ```bash
-   sudo mkdir nielitinfosec
-   cd nielitinfosec
-   ```  
-   In this **_directory,_** create a configuration file for the Forward Zone named **_forward.nielitinfosec.local_**    
+```bash
+   sudo mkdir nielit
+   cd nielit
+```  
+   In this **_directory,_** create a configuration file for the Forward Zone.    
+```bash
+sudo nano fwd.nielitinfosec.local
+```
 
 6. **Add the following lines in the _forward.neilitinfosec.local_ configuration file:**  
-   ```bash
-    $TTL    604800
-    @       IN      SOA     nielitinfosec.local. root.nielitinfosec.local. (
-                                    3         ; Serial (increment on change)
-                                604800        ; Refresh
-                                86400         ; Retry
-                                2419200       ; Expire
-                                604800 )      ; Negative Cache TTL
-
-    ; Name server record
-    @       IN      NS      dns-1.nielitinfosec.local.
-
-    ; A record for the name server
-    dns-1   IN      A       192.168.116.1   ; Change to your DNS server IP
-
-    ; A records for services
-    www     IN      A       192.168.116.21
-    mail    IN      A       192.168.116.15
-
-    ; Mail handler (MX) record
-    @       IN      MX      10   mail.nielitinfosec.local.
-
-    ; A records for clients
-    client1  IN      A       192.168.116.132
-    client2  IN      A       192.168.116.133
-
-    ; Ensure the file ends with a newline
-
-```
-   Save and exit.
-💡 To check for the sysatax errors in the configuration file, use this command:
 ```bash
-sudo named-checkzone nielitinfosec.local forward.nielitinfosec.local
+$TTL    604800
+; SOA record with MNAME and RNAME updated
+@       IN      SOA     nielitinfosec.local. root.nielitinfosec.local. (
+                              3         ; Serial Note: increment after each change
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+; Name server record 
+@       IN      NS      dns.nielitinfosec.local.
+; A record for name server
+dns     IN      A       192.168.40.128
+
+; Mail handler or MX record for the domain nielitinfosec.local
+nielitinfosec.local.    IN     MX   10   mail.nielitinfosec.local.
+
+; A rocerd for Mail server
+mail    IN      A       192.168.40.130
+; A record for web server
+www     IN      A       192.168.40.128
+
+```   
+Save and exit.    
+
+💡 To check for the sysatax errors in the configuration file, use this command:  
+```bash
+sudo named-checkzone nielitinfosec.local fwd.nielitinfosec.local
 ```
 _⚠️ After execution.! You'll see something like this:_  
 ```bash
 zone nielitinfosec.local/IN: loaded serial 3
 OK
 ``` 
-7. In the same **_directory,_** create a configuration file for the Forward Zone named **_reverse.nielitinfosec.local_**  
+7. In the same **_directory,_** create a configuration file for the Reverse Zone.
+```bash
+sudo nano rvs.neilitinfosec.local
+```
 
 8. **Add the following lines in the _reverse.neilitinfosec.local_ configuration file:**
 ```bash
@@ -302,30 +305,24 @@ $TTL    604800
                           86400         ; Retry
                         2419200         ; Expire
                          604800 )       ; Negative Cache TTL
-
 ; Name server record 
-@       IN      NS      dns-1.nielitinfosec.local.
+@        IN      NS      dns.nielitinfosec.local.
+; A record for Name Server
+dns      IN      A       192.168.40.128
+; PTR record for Name Server
+128      IN      PTR     dns.nielitinfosec.local.
+; PTR record for Mail Server
+130      IN      PTR     mail.nielitinfosec.local.
+; PTR record for Web Server
+128      IN      PTR     www.nielitinfosec.local.
 
-; A record for name server
-dns-1   IN      A       192.168.116.1
-www     IN      A       192.168.116.21
-mail    IN      A       192.168.116.15
-
-; PTR record for name server
-1       IN      PTR     dns-1.nielitinfosec.local.
-21      IN      PTR     www.nielitinfosec.local.
-15      IN      PTR     mail.nielitinfosec.local.
-
-; PTR records for clients
-132     IN      PTR     client1.nielitinfosec.local.
-133     IN      PTR     client2.nielitinfosec.local.
 
 ``` 
 Save and exit!  
 
 💡 To check for the sysatax errors in the configuration file, use this command:
 ```bash
-sudo named-checkzone nielitinfosec.local forward.nielitinfosec.local
+sudo named-checkzone nielitinfosec.local rvs.nielitinfosec.local
 ```
 _⚠️ After execution.! You'll see something like this:_  
 ```bash
@@ -336,10 +333,10 @@ OK
 ## **Verifying & Restarting BIND9**  
 
 1. **Check configuration syntax:**  
-   ```bash
-   sudo named-checkconf
-   ```  
-   _⚠️ After execution. if the configuration is correct, the returned result will be wihtout any message!_ 
+```bash
+sudo named-checkconf
+```
+_⚠️ After execution. if the configuration is correct, the returned result will be wihtout any message!_ 
 
 2. **Restart BIND9 to apply changes:**  
    ```bash
@@ -363,6 +360,50 @@ After reloading the firewall, check the firewall status:
 ```bash
 sudo ufw status
 ```
+## Configuring the WEB server
+1. **Updating the Repositories:**
+```bash
+sudo apt update 
+```
+2. **Install Apache2**
+```bash
+sudo apt install apache2 -y
+```
+3. **After installation, start and enable Apache to run at boot:**
+```bash
+sudo systemctl start apache2
+sudo systemctl enable apache2
+```
+4. **Check its status to ensure it's running:**
+```bash
+sudo systemctl status apache2
+```
+5. **Allow External Access to Apache (Firewall)**
+_⚠ By default, Apache2 listens on port 80 (HTTP). You need to allow traffic from your Windows client:_
+```bash
+sudo ufw allow 80/tcp
+sudo ufw reload
+```
+6. **Configure Apache**
+_⚠ The default web root directory is:_
+```bash
+cd /var/www/html
+```
+7. **You can create or modify your own website files here:**
+_⚠ After the changes you have to restart the apache services!_
+```bash
+sudo systemctl restart apache2
+```
+## Configuring the DNS on the Windows client:
+   * Press Win logo button + R
+   * Type ```ncpa.cpl``` and press Enter
+   * In the Network Connection choose your Network Adapter & Double click on it (e.g.: Ethernet or Wi-Fi)
+   * Go to properties
+   * Scroll down and choose: ```Internet Protocol Version 4 (TCP/IP)``` Double click on it
+   * Here, choose the Options: ```Use the following DNS server address:```
+   * In the ```Preferred DNS server:``` Enter the IP address of DNS Server (Ubuntu Machine) and click on OK
+   * Double click on the same ```Adapter``` you just configured, Disable it and Enable it to apply the chanegs
+   * Close the Control Panel
 ## **Testing on windows client**
 1. use the **_ping_** command in CMD.
 ```bash
@@ -377,19 +418,22 @@ Reply from 192.168.116.132: bytes=32 time=1ms TTL=64
 Reply from 192.168.116.132: bytes=32 time=1ms TTL=64
 ```     
 ✔ this means you're successfully connected to the DNS Sever.!
-## **Testing DNS Server**  
+## **Testing DNS Server**
+```bash
+ping www.nielitinfosec.local
+```
+_⚠️ After execution.! You'll see something like this:_
+```bash
+Pinging www.nielitinfosec.local [192.168.40.128] with 32 bytes of data:
+Reply from 192.168.40.128: bytes=32 time=1ms TTL=64
+Reply from 192.168.40.128: bytes=32 time<1ms TTL=64
+Reply from 192.168.40.128: bytes=32 time=2ms TTL=64
+Reply from 192.168.40.128: bytes=32 time<1ms TTL=64
+```
+## 💡 If you browse this domain from windows client
+```bash
+www.nielitinfosec.local
+```
+## You'll See something like this:
 
-**Configuring the DNS on the Windows client:**  
-   * Press Win logo button + R
-   * Type ```ncpa.cpl``` and press Enter
-   * In the Network Connection choose your Network Adapter & Double click on it (e.g.: Ethernet or Wi-Fi)
-   * Go to properties
-   * Scroll down and choose: ```Internet Protocol Version 4 (TCP/IP)``` Double click on it
-   * Here, choose the Options: ```Use the following DNS server address:```
-   * In the ```Preferred DNS server:``` Enter the IP address of DNS Server (Ubuntu Machine) and click on OK
-   * Double click on the same ```Adapter``` you just configured, Disable it and Enable it to apply the chanegs
-   * Close the Control Panel 
-   ## Use the ```ping``` command to check the response from the DNS server
-   * Press Win logo button + R
-   * Type ```CMD```
-   * In the ```Command Prompt``` type ```ping nielitinfosec.local``` 
+![nielitinfosec](https://github.com/user-attachments/assets/3c3c5bdb-635c-49f6-b3dd-5b9b046173fc)
